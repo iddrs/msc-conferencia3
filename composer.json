@@ -1,0 +1,23 @@
+{
+    "name": "iddrs/msc-conferencia3",
+    "description": "Sistema de conferência da MSC.",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        },
+        "files": [
+            "lib/db.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Everton da Rosa",
+            "email": "everton3x@gmail.com"
+        }
+    ],
+    "require": {
+        "nickbeen/php-cli-progress-bar": "^1.1"
+    }
+}
