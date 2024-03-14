@@ -148,16 +148,20 @@ class MscBalVerTest extends BaseTest {
     }
     
     private function getDataFinal(): string {
-        $data = new \DateTime($this->remessa); // Cria um objeto DateTime com o ano e mês
+        $data = date_create_from_format('Y-m-d', $this->getDataInicial());
         $data->modify('last day of this month'); // Modifica a data para o último dia do mês
         return $data->format('Y-m-d'); // Formata a data para o formato YYYY-MM-DD
     }
     
     private function getDataInicial(): string {
-        $data = new \DateTime($this->remessa.'01'); // Cria um objeto DateTime com o ano e mês e dia
+        $ano = (int) substr($this->remessa, 0, 4);
+        $mes = (int) substr($this->remessa, 4, 2);
+        if($mes === 13) $mes = 12;
+        $data = date_create();
+        $data->setDate($ano, $mes, 1);
         return $data->format('Y-m-d'); // Formata a data para o formato YYYY-MM-DD
     }
-    
+       
     private function calculaMovimentoDebitoBalVer(): void {
         echo "\t-> Calculando movimentação a débito...", PHP_EOL;
         $sql = "SELECT conta_contabil, SUM(valor_lancamento)::decimal AS movimento_debito FROM pad.tce_4111 WHERE remessa = %d AND tipo_lancamento LIKE 'D' AND (data_lancamento BETWEEN '%s' AND '%s') GROUP BY conta_contabil";
@@ -193,8 +197,15 @@ class MscBalVerTest extends BaseTest {
     private function calculaSaldoInicialBalVer(string $tabela): void {
         echo "\t-> Calculando saldo inicial...", PHP_EOL;
         $sql = "SELECT conta_contabil, saldo_atual::decimal FROM %s WHERE remessa = %d AND escrituracao LIKE 'S'";
-//        echo sprintf($sql, $tabela, $this->remessaAnterior()), PHP_EOL;exit();
-        $result = $this->query(sprintf($sql, $tabela, $this->remessaAnterior()));
+        $remessa_anterior = $this->remessaAnterior();
+        if(substr($remessa_anterior, 4, 2) == 13){
+            $remessa_anterior = substr($remessa_anterior, 0, 4).'12';
+            $tabela = 'pad.bver_enc';
+        }
+        if(substr($this->remessa, 4,2) == 13){
+            $tabela = 'pad.bal_ver';
+        }
+        $result = $this->query(sprintf($sql, $tabela, $remessa_anterior));
         $resultado = pg_fetch_all($result, PGSQL_ASSOC);
         $pb = new \NickBeen\ProgressBar\ProgressBar(maxProgress: sizeof($resultado));
         begin_transaction($this->con);
@@ -223,7 +234,81 @@ class MscBalVerTest extends BaseTest {
     }
     
     private function montaBalVerEncerramento(): void {
+        $tabela = 'pad.bver_enc';
+        $this->apagaBalVerMensal();
+//        $this->calculaSaldoInicialBalVer($tabela);
+//        $this->calculaMovimentoDebitoBalVer();
+//        $this->calculaMovimentoCreditoBalVer();
+//        $this->calculaSaldoFinalBalVer($tabela);
         
+        echo "\t-> Montando balancete mensal de encerramento...", PHP_EOL;
+        $sql = "WITH CC AS
+	(SELECT DISTINCT CONTA_CONTABIL
+		FROM PAD.BVER_ENC
+		WHERE REMESSA = %d
+			AND ESCRITURACAO like 'S' ),
+	BALANCETE AS
+	(SELECT CONTA_CONTABIL,
+
+			(SELECT SUM(SALDO_ATUAL)
+				FROM PAD.BAL_VER
+				WHERE REMESSA = %d
+					AND ESCRITURACAO like 'S'
+					AND CONTA_CONTABIL like CC.CONTA_CONTABIL) AS SALDO_INICIAL,
+
+			(SELECT SUM(MOVIMENTO_DEVEDOR)
+				FROM PAD.BAL_VER
+				WHERE REMESSA = %d
+					AND ESCRITURACAO like 'S'
+					AND CONTA_CONTABIL like CC.CONTA_CONTABIL ) AS DEBITO_INICIAL,
+
+			(SELECT SUM(MOVIMENTO_DEVEDOR)
+				FROM PAD.BVER_ENC
+				WHERE REMESSA = %d
+					AND ESCRITURACAO like 'S'
+					AND CONTA_CONTABIL like CC.CONTA_CONTABIL ) AS DEBITO_FINAL,
+
+			(SELECT SUM(MOVIMENTO_CREDOR)
+				FROM PAD.BAL_VER
+				WHERE REMESSA = %d
+					AND ESCRITURACAO like 'S'
+					AND CONTA_CONTABIL like CC.CONTA_CONTABIL ) AS CREDITO_INICIAL,
+
+			(SELECT SUM(MOVIMENTO_CREDOR)
+				FROM PAD.BVER_ENC
+				WHERE REMESSA = %d
+					AND ESCRITURACAO like 'S'
+					AND CONTA_CONTABIL like CC.CONTA_CONTABIL ) AS CREDITO_FINAL,
+
+			(SELECT SUM(SALDO_ATUAL)
+				FROM PAD.BVER_ENC
+				WHERE REMESSA = %d
+					AND ESCRITURACAO like 'S'
+					AND CONTA_CONTABIL like CC.CONTA_CONTABIL) AS SALDO_FINAL
+		FROM CC
+		ORDER BY CONTA_CONTABIL ASC)
+SELECT CONTA_CONTABIL,
+	SALDO_INICIAL::DECIMAL,
+	(DEBITO_FINAL - DEBITO_INICIAL)::DECIMAL AS MOVIMENTO_DEBITO,
+	(CREDITO_FINAL - CREDITO_INICIAL)::DECIMAL AS MOVIMENTO_CREDITO,
+	SALDO_FINAL::DECIMAL
+FROM BALANCETE
+ORDER BY CONTA_CONTABIL";
+        $remessa = substr($this->remessa, 0, 4).'12';
+        $result = $this->query(sprintf($sql, $remessa, $remessa, $remessa, $remessa, $remessa, $remessa, $remessa));
+        $resultado = pg_fetch_all($result, PGSQL_ASSOC);
+        $pb = new \NickBeen\ProgressBar\ProgressBar(maxProgress: sizeof($resultado));
+        begin_transaction($this->con);
+        foreach ($pb->iterate($resultado) as $i => $row){
+            $data['conta_contabil_pad'] = $row['conta_contabil'];
+            $data['saldo_inicial'] = $row['saldo_inicial'];
+            $data['movimento_debito'] = $row['movimento_debito'];
+            $data['movimento_credito'] = $row['movimento_credito'];
+            $data['saldo_final'] = $row['saldo_final'];
+            pg_insert($this->con, 'tmp.balver_mensal', $data);
+        }
+        commit($this->con);
+        $this->buscaMapeamentos();
     }
     
     
