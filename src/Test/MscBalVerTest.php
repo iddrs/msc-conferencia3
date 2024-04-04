@@ -125,7 +125,7 @@ class MscBalVerTest extends BaseTest {
     
     private function buscaMapeamentos(): void {
         echo "\t-> Mapeando as contas PAD -> MSC...", PHP_EOL;
-        $sql = "SELECT DISTINCT conta_contabil_pad FROM tmp.balver_mensal";
+        $sql = "SELECT DISTINCT conta_contabil_pad FROM tmp.balver_mensal ORDER BY conta_contabil_pad ASC";
         $cc_pad = pg_fetch_all($this->query($sql), PGSQL_ASSOC);
         $pb = new \NickBeen\ProgressBar\ProgressBar(maxProgress: sizeof($cc_pad));
         begin_transaction($this->con);
@@ -250,37 +250,37 @@ class MscBalVerTest extends BaseTest {
 	BALANCETE AS
 	(SELECT CONTA_CONTABIL,
 
-			(SELECT SUM(SALDO_ATUAL)
+			(SELECT SUM(SALDO_ATUAL)::decimal
 				FROM PAD.BAL_VER
 				WHERE REMESSA = %d
 					AND ESCRITURACAO like 'S'
 					AND CONTA_CONTABIL like CC.CONTA_CONTABIL) AS SALDO_INICIAL,
 
-			(SELECT SUM(MOVIMENTO_DEVEDOR)
+			(SELECT SUM(MOVIMENTO_DEVEDOR)::decimal
 				FROM PAD.BAL_VER
 				WHERE REMESSA = %d
 					AND ESCRITURACAO like 'S'
 					AND CONTA_CONTABIL like CC.CONTA_CONTABIL ) AS DEBITO_INICIAL,
 
-			(SELECT SUM(MOVIMENTO_DEVEDOR)
+			(SELECT SUM(MOVIMENTO_DEVEDOR)::decimal
 				FROM PAD.BVER_ENC
 				WHERE REMESSA = %d
 					AND ESCRITURACAO like 'S'
 					AND CONTA_CONTABIL like CC.CONTA_CONTABIL ) AS DEBITO_FINAL,
 
-			(SELECT SUM(MOVIMENTO_CREDOR)
+			(SELECT SUM(MOVIMENTO_CREDOR)::decimal
 				FROM PAD.BAL_VER
 				WHERE REMESSA = %d
 					AND ESCRITURACAO like 'S'
 					AND CONTA_CONTABIL like CC.CONTA_CONTABIL ) AS CREDITO_INICIAL,
 
-			(SELECT SUM(MOVIMENTO_CREDOR)
+			(SELECT SUM(MOVIMENTO_CREDOR)::decimal
 				FROM PAD.BVER_ENC
 				WHERE REMESSA = %d
 					AND ESCRITURACAO like 'S'
 					AND CONTA_CONTABIL like CC.CONTA_CONTABIL ) AS CREDITO_FINAL,
 
-			(SELECT SUM(SALDO_ATUAL)
+			(SELECT SUM(SALDO_ATUAL)::decimal
 				FROM PAD.BVER_ENC
 				WHERE REMESSA = %d
 					AND ESCRITURACAO like 'S'

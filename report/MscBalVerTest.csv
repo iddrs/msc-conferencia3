@@ -1,0 +1,5 @@
+conta_contabil;pad_saldo_inicial;msc_saldo_inicial;pad_movimento_debito;msc_movimento_debito;pad_movimento_credito;msc_movimento_credito;pad_saldo_final;msc_saldo_final;diferenca_saldo_inicial;diferenca_movimento_debito;diferenca_movimento_credito;diferenca_saldo_final
+631990000;"R$ 213.262,07";"R$ 213.262,07";"R$ 0,00";"R$ 0,00";"R$ 2.911,01";"R$ 0,00";"R$ 216.173,08";"R$ 213.262,07";"R$ 0,00";"R$ 0,00";"R$ 2.911,01";"R$ 2.911,01"
+631400000;"R$ 508.586,84";"R$ 508.586,84";"R$ 0,00";"R$ 0,00";"R$ 117.816,23";"R$ 0,00";"R$ 626.403,07";"R$ 508.586,84";"R$ 0,00";"R$ 0,00";"R$ 117.816,23";"R$ 117.816,23"
+631300000;"R$ 6.725,10";"R$ 6.725,10";"R$ 117.816,23";"R$ 0,00";"R$ 111.091,13";"R$ 0,00";"R$ 0,00";"R$ 6.725,10";"R$ 0,00";"R$ 117.816,23";"R$ 111.091,13";"-R$ 6.725,10"
+631100000;"R$ 1.253.757,92";"R$ 1.253.757,92";"R$ 114.002,14";"R$ 0,00";"R$ 0,00";"R$ 0,00";"R$ 1.139.755,78";"R$ 1.253.757,92";"R$ 0,00";"R$ 114.002,14";"R$ 0,00";"-R$ 114.002,14"
