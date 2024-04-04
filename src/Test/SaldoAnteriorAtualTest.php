@@ -31,7 +31,7 @@ class SaldoAnteriorAtualTest extends BaseTest {
                                         COALESCE(SUBFUNCAO, 0) AS SUBFUNCAO,
                                         COALESCE(ANO_INSCRICAO_RESTOS_A_PAGAR, 0) AS ANO_INSCRICAO_RESTOS_A_PAGAR
                                 FROM MSC.MSC
-                                WHERE REMESSA = 202401
+                                WHERE REMESSA = %d
                                 UNION SELECT DISTINCT CONTA_CONTABIL,
                                         PODER_ORGAO,
                                         COALESCE(FINANCEIRO_PERMANENTE, 0) AS FINANCEIRO_PERMANENTE,
@@ -45,7 +45,7 @@ class SaldoAnteriorAtualTest extends BaseTest {
                                         COALESCE(SUBFUNCAO, 0) AS SUBFUNCAO,
                                         COALESCE(ANO_INSCRICAO_RESTOS_A_PAGAR, 0) AS ANO_INSCRICAO_RESTOS_A_PAGAR
                                 FROM MSC.MSC
-                                WHERE REMESSA = 202402 )
+                                WHERE REMESSA = %d )
                 SELECT DISTINCT *
                 FROM LISTA_CC";
         
@@ -63,31 +63,46 @@ class SaldoAnteriorAtualTest extends BaseTest {
     }
     
     private function calculaValores(array $row): array {
-        $sql = "SELECT SUM(SALDO_FINAL) AS VALOR FROM MSC.MSC "
+        $sql = "SELECT SUM(SALDO_INICIAL)::decimal AS VALOR FROM MSC.MSC "
                 . "WHERE REMESSA = %d "
                 . "AND CONTA_CONTABIL LIKE '%s' "
-                . "AND FINANCEIRO_PERMANENTE = %d "
-                . "AND DIVIDA_CONSOLIDADA = %d "
-                . "AND INDICADOR_EXERCICIO_FONTE_RECURSO = %d "
-                . "AND FONTE_RECURSO = %d "
-                . "AND CODIGO_ACOMPANHAMENTO_ORCAMENTARIO = %d "
-                . "AND NATUREZA_RECEITA LIKE '%s' "
-                . "AND NATUREZA_DESPESA LIKE '%s' "
-                . "AND FUNCAO = %d "
-                . "AND SUBFUNCAO = %d "
-                . "AND ANO_INSCRICAO_RESTOS_A_PAGAR = %d";
-        $valor = $this->query(sprintf($sql, $this->remessa, $row['conta_contabil'], $row['financeiro_permanente'], $row['divida_consolidada'], $row['indicador_exercicio_fonte_recurso'], $row['fonte_recurso'], $row['codigo_acompanhamento_orcamentario'], $row['natureza_receita'], $row['natureza_despesa'], $row['funcao'], $row['subfuncao'], $row['ano_inscricao_restos_a_pagar']));
-        if($valor === false){
-            $saldo_final_anterior = 0.0;
-        }else{
-            $saldo_final_anterior = round(array_sum(pg_fetch_all_columns($valor, 0)), 2);
-        }
-        
-        $valor = $this->query(sprintf($sql, $this->remessaAnterior(), $row['conta_contabil'], $row['financeiro_permanente'], $row['divida_consolidada'], $row['indicador_exercicio_fonte_recurso'], $row['fonte_recurso'], $row['codigo_acompanhamento_orcamentario'], $row['natureza_receita'], $row['natureza_despesa'], $row['funcao'], $row['subfuncao'], $row['ano_inscricao_restos_a_pagar']));
+                . "AND COALESCE(FINANCEIRO_PERMANENTE, 0) = %d "
+                . "AND COALESCE(DIVIDA_CONSOLIDADA, 0) = %d "
+                . "AND COALESCE(INDICADOR_EXERCICIO_FONTE_RECURSO, 0) = %d "
+                . "AND COALESCE(FONTE_RECURSO, 0) = %d "
+                . "AND COALESCE(CODIGO_ACOMPANHAMENTO_ORCAMENTARIO, 0) = %d "
+                . "AND COALESCE(NATUREZA_RECEITA, '0') LIKE '%s' "
+                . "AND COALESCE(NATUREZA_DESPESA, '0') LIKE '%s' "
+                . "AND COALESCE(FUNCAO, 0) = %d "
+                . "AND COALESCE(SUBFUNCAO, 0) = %d "
+                . "AND COALESCE(ANO_INSCRICAO_RESTOS_A_PAGAR, 0) = %d";
+        $query = sprintf($sql, $this->remessa, $row['conta_contabil'], $row['financeiro_permanente'], $row['divida_consolidada'], $row['indicador_exercicio_fonte_recurso'], $row['fonte_recurso'], $row['codigo_acompanhamento_orcamentario'], $row['natureza_receita'], $row['natureza_despesa'], $row['funcao'], $row['subfuncao'], $row['ano_inscricao_restos_a_pagar']);
+        $valor = $this->query($query);
         if($valor === false){
             $saldo_inicial_atual = 0.0;
         }else{
             $saldo_inicial_atual = round(array_sum(pg_fetch_all_columns($valor, 0)), 2);
+        }
+        
+        $sql = "SELECT SUM(SALDO_FINAL)::decimal AS VALOR FROM MSC.MSC "
+                . "WHERE REMESSA = %d "
+                . "AND CONTA_CONTABIL LIKE '%s' "
+                . "AND COALESCE(FINANCEIRO_PERMANENTE, 0) = %d "
+                . "AND COALESCE(DIVIDA_CONSOLIDADA, 0) = %d "
+                . "AND COALESCE(INDICADOR_EXERCICIO_FONTE_RECURSO, 0) = %d "
+                . "AND COALESCE(FONTE_RECURSO, 0) = %d "
+                . "AND COALESCE(CODIGO_ACOMPANHAMENTO_ORCAMENTARIO, 0) = %d "
+                . "AND COALESCE(NATUREZA_RECEITA, '0') LIKE '%s' "
+                . "AND COALESCE(NATUREZA_DESPESA, '0') LIKE '%s' "
+                . "AND COALESCE(FUNCAO, 0) = %d "
+                . "AND COALESCE(SUBFUNCAO, 0) = %d "
+                . "AND COALESCE(ANO_INSCRICAO_RESTOS_A_PAGAR, 0) = %d";
+        $query = sprintf($sql, $this->remessaAnterior(), $row['conta_contabil'], $row['financeiro_permanente'], $row['divida_consolidada'], $row['indicador_exercicio_fonte_recurso'], $row['fonte_recurso'], $row['codigo_acompanhamento_orcamentario'], $row['natureza_receita'], $row['natureza_despesa'], $row['funcao'], $row['subfuncao'], $row['ano_inscricao_restos_a_pagar']);
+        $valor = $this->query($query);
+        if($valor === false){
+            $saldo_final_anterior = 0.0;
+        }else{
+            $saldo_final_anterior = round(array_sum(pg_fetch_all_columns($valor, 0)), 2);
         }
         
         $diferenca = round($saldo_inicial_atual - $saldo_final_anterior, 2);
