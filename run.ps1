@@ -32,7 +32,7 @@ do {
             php msc_balver.php
         }
         '9' {
-            Write-Host "Você escolheu a Opção 4: Todos os testes"
+            Write-Host "Você escolheu a Opção 9: Todos os testes"
             # Aqui você pode adicionar o código para executar a opção 4
             php todos.php
         }
